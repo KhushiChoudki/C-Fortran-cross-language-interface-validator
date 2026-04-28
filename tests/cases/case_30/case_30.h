@@ -1,0 +1,1 @@
+void sub_30(double x);

@@ -1,0 +1,1 @@
+void sub_7(double x);

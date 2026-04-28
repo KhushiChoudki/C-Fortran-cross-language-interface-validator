@@ -1,0 +1,1 @@
+void sub_10(double x);

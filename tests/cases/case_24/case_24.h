@@ -1,0 +1,1 @@
+void sub_24(double x);

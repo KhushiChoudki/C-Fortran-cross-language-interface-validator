@@ -1,0 +1,1 @@
+void sub_22(double x);

@@ -1,0 +1,1 @@
+void sub_18(double x);

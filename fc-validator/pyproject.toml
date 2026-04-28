@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fc-validator"
+version = "0.1.0"
+authors = [
+  { name="Colab User", email="user@example.com" },
+]
+description = "A tool for validating Fortran BIND(C) and C header interfaces."
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["Fortran", "C", "ABI", "validation", "interoperability"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "typer",
+    "rich",
+]
+
+[project.scripts]
+fc-validator = "fc_validator.cli:app"
+
+[project.urls]
+"Homepage" = "https://github.com/yourusername/fc-validator"
+"Bug Tracker" = "https://github.com/yourusername/fc-validator/issues"
