@@ -1,4 +1,4 @@
-# Fortran–C Cross-Language Interface Validator
+<img width="1918" height="947" alt="image" src="https://github.com/user-attachments/assets/e2d51ec2-fcaf-4afb-ace8-11d68e704e8c" /># Fortran–C Cross-Language Interface Validator
 
 A robust CLI tool designed to detect type mismatches, ABI violations, and silent interoperability bugs between Fortran `BIND(C)` interfaces and their corresponding C headers.
 
@@ -65,16 +65,15 @@ The project now includes a beautiful, full-stack web application that provides a
 - **AI Generator Tab**: Automatically generate Fortran `BIND(C)` interfaces from C headers using intelligent parsing.
 
 ### UI Screenshots
-*(Add your actual screenshots to the `assets` folder and update these links)*
 
-![IDE Validator - Accepted](assets/ide_accepted.png)
+<img width="1911" height="899" alt="image" src="https://github.com/user-attachments/assets/7a24e301-b927-4858-af94-0cb048d345b0" />
 *Figure 1: The IDE Validator showing a clean "Accepted" console after successful validation.*
 
-![IDE Validator - Mismatches](assets/ide_rejected.png)
+<img width="1918" height="947" alt="image" src="https://github.com/user-attachments/assets/2baa948c-3415-4f91-bdbf-c2fa5a3a375c" />
 *Figure 2: The IDE Validator catching multiple ABI violations and rendering them as red squiggly lines with a detailed "Wrong Answer" console.*
 
-![Test Cases Suite](assets/test_cases.png)
-*Figure 3: The Test Cases tab showing batch-run results across 30+ automated tests.*
+<img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/dbad739d-aef4-414a-94fc-05c5c1a23051" />
+*Figure 3: The AI Generator tab generating fortran subroutine for respective c header file*
 
 ## Project Structure
 
