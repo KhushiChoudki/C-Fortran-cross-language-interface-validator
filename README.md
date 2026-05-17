@@ -69,8 +69,10 @@ The project now includes a beautiful, full-stack web application that provides a
 <img width="1911" height="899" alt="image" src="https://github.com/user-attachments/assets/7a24e301-b927-4858-af94-0cb048d345b0" />
 *Figure 1: The IDE Validator showing a clean "Accepted" console after successful validation.*
 
+
 <img width="1918" height="947" alt="image" src="https://github.com/user-attachments/assets/2baa948c-3415-4f91-bdbf-c2fa5a3a375c" />
 *Figure 2: The IDE Validator catching multiple ABI violations and rendering them as red squiggly lines with a detailed "Wrong Answer" console.*
+
 
 <img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/dbad739d-aef4-414a-94fc-05c5c1a23051" />
 *Figure 3: The AI Generator tab generating fortran subroutine for respective c header file*
