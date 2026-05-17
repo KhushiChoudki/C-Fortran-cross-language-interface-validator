@@ -23,8 +23,13 @@ class FlangParser:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             return self._parse_symbols(result.stdout)
         except subprocess.CalledProcessError as e:
-            print(f"Error running flang: {e.stderr}")
-            return None
+            err_text = e.stderr
+            match = re.search(r':(\d+):\d+:\s+error:\s+(.*)', err_text)
+            if match:
+                return {"syntax_error": {"msg": f"Syntax Error: {match.group(2).strip()}", "loc": f"Fortran line {match.group(1)}"}}
+            # Fallback if regex doesn't match
+            first_line = err_text.splitlines()[0] if err_text else "Unknown syntax error"
+            return {"syntax_error": {"msg": f"Syntax Error: {first_line}", "loc": "Fortran line 1"}}
         except Exception as e:
             print(f"Error parsing flang output: {e}")
             return None

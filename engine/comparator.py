@@ -1,3 +1,5 @@
+from engine.semantic_checker import SemanticChecker
+
 class Comparator:
     # Mapping C types to Fortran ISO_C_BINDING kinds
     C_TO_FORTRAN_TYPES = {
@@ -5,7 +7,7 @@ class Comparator:
         "long": "integer(8)",
         "long long": "integer(8)",
         "short": "integer(2)",
-        "char": "integer(1)",
+        "char": "character",
         "float": "real(4)",
         "double": "real(8)",
         "void *": "type(c_ptr)",
@@ -50,15 +52,19 @@ class Comparator:
             self.report.append({
                 "level": "ERROR",
                 "msg": f"Parameter count mismatch for '{name}': C has {len(c_info['params'])}, Fortran has {len(f_info['params'])}.",
-                "loc": f"C: {c_info['loc']['file']}:{c_info['loc']['line']} vs Fortran line {f_info['loc']['line']}"
+                "loc": f"Fortran line {f_info['loc']['line']}"
             })
             return
 
         # Compare each parameter
         for i, (c_param, f_param) in enumerate(zip(c_info["params"], f_info["params"])):
-            self._compare_params(name, i, c_param, f_param)
+            self._compare_params(name, i, c_param, f_param, f_info['loc']['line'])
 
-    def _compare_params(self, func_name, idx, c_param, f_param):
+        # Semantic Checks
+        semantic_warnings = SemanticChecker.check_functions(name, c_info, f_info)
+        self.report.extend(semantic_warnings)
+
+    def _compare_params(self, func_name, idx, c_param, f_param, f_line):
         c_type = c_param["type"].replace("const ", "").strip()
         f_type = f_param["type"]
         
@@ -70,7 +76,7 @@ class Comparator:
             self.report.append({
                 "level": "ERROR",
                 "msg": f"Pass-by mismatch in '{func_name}' arg {idx+1} ({f_param['name']}): C is pointer but Fortran is VALUE.",
-                "loc": f"C: {c_param['loc']['file']}:{c_param['loc']['line']}"
+                "loc": f"Fortran line {f_line}"
             })
         elif not is_c_pointer and not is_f_value:
             # Note: Fortran passes by reference by default, which maps to C pointers
@@ -78,7 +84,7 @@ class Comparator:
             self.report.append({
                 "level": "ERROR",
                 "msg": f"Pass-by mismatch in '{func_name}' arg {idx+1} ({f_param['name']}): C is value but Fortran is reference (missing VALUE attribute).",
-                "loc": f"C: {c_param['loc']['file']}:{c_param['loc']['line']}"
+                "loc": f"Fortran line {f_line}"
             })
 
         # Basic type compatibility check
@@ -87,7 +93,7 @@ class Comparator:
              self.report.append({
                 "level": "WARNING",
                 "msg": f"Type mismatch in '{func_name}' arg {idx+1} ({f_param['name']}): C type '{c_type}' maps to '{expected_f_type}', but Fortran uses '{f_type}'.",
-                "loc": f"C: {c_param['loc']['file']}:{c_param['loc']['line']}"
+                "loc": f"Fortran line {f_line}"
             })
 
     def _compare_structs(self, name, c_struct, f_type):
@@ -95,7 +101,7 @@ class Comparator:
             self.report.append({
                 "level": "ERROR",
                 "msg": f"Struct field count mismatch for '{name}': C has {len(c_struct['fields'])}, Fortran has {len(f_type['fields'])}.",
-                "loc": f"C: {c_struct['loc']['file']}:{c_struct['loc']['line']}"
+                "loc": f"Fortran line {f_type['loc']['line']}"
             })
             return
 
@@ -108,7 +114,7 @@ class Comparator:
                 self.report.append({
                     "level": "ERROR",
                     "msg": f"Field type mismatch in struct '{name}' at field '{c_field['name']}': C type '{c_ftype}' maps to '{expected_f_type}', but Fortran uses '{f_ftype}'.",
-                    "loc": f"C: {c_field['loc']['file']}:{c_field['loc']['line']}"
+                    "loc": f"Fortran line {f_type['loc']['line']}"
                 })
 
     def _map_c_to_f(self, c_type):

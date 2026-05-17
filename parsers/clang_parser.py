@@ -18,8 +18,13 @@ class ClangParser:
             ast = json.loads(result.stdout)
             return self._extract_metadata(ast)
         except subprocess.CalledProcessError as e:
-            print(f"Error running clang: {e.stderr}")
-            return None
+            err_text = e.stderr
+            import re
+            match = re.search(r':(\d+):\d+:\s+error:\s+(.*)', err_text)
+            if match:
+                return {"syntax_error": {"msg": f"Syntax Error: {match.group(2).strip()}", "loc": f"C: header:{match.group(1)}"}}
+            first_line = err_text.splitlines()[0] if err_text else "Unknown syntax error"
+            return {"syntax_error": {"msg": f"Syntax Error: {first_line}", "loc": "C: header:1"}}
         except Exception as e:
             print(f"Error parsing clang output: {e}")
             return None

@@ -55,8 +55,31 @@ Run the full test suite:
 python scripts/run_all_tests.py
 ```
 
+## Web Application (UI)
+
+The project now includes a beautiful, full-stack web application that provides a LeetCode-style experience for validating and generating Fortran-C interfaces.
+
+### Features
+- **IDE Validator Tab**: Dual Monaco editors with live syntax checking, semantic error squigglies, and a unified LeetCode-style test result console.
+- **Test Cases Tab**: A comprehensive suite to browse, run, and batch-execute edge cases with an interactive sidebar.
+- **AI Generator Tab**: Automatically generate Fortran `BIND(C)` interfaces from C headers using intelligent parsing.
+
+### UI Screenshots
+*(Add your actual screenshots to the `assets` folder and update these links)*
+
+![IDE Validator - Accepted](assets/ide_accepted.png)
+*Figure 1: The IDE Validator showing a clean "Accepted" console after successful validation.*
+
+![IDE Validator - Mismatches](assets/ide_rejected.png)
+*Figure 2: The IDE Validator catching multiple ABI violations and rendering them as red squiggly lines with a detailed "Wrong Answer" console.*
+
+![Test Cases Suite](assets/test_cases.png)
+*Figure 3: The Test Cases tab showing batch-run results across 30+ automated tests.*
+
 ## Project Structure
 
+- `server.py`: Flask backend serving the API.
+- `frontend/`: React + Vite frontend application.
 - `fc_validator.py`: Main CLI entry point.
 - `parsers/`: LLVM-based parsers for C and Fortran.
 - `engine/`: Cross-language type comparison logic.
