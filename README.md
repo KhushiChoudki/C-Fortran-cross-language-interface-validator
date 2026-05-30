@@ -81,9 +81,9 @@ python scripts/run_all_tests.py
 A premium, full-stack LeetCode-style web interface is provided for live cross-language validation and generator pipelines.
 
 ### **Features**
-1. **IDE Validator Tab**: Interactive side-by-side Monaco Editors for C and Fortran with instant compilation error reporting, line-specific squigglies, and a comprehensive test output console.
-2. **Test Cases Tab**: Sidebar containing the **30+ built-in deliberate mismatches** — allowing one-click loading, instant batch execution, and inline terminal outputs.
-3. **AI Generator Tab**: Automatically generates fully compatible Fortran `BIND(C)` modules and subprograms from pasted C headers.
+1. **IDE Validator Tab**: Interactive side-by-side Monaco Editors for C and Fortran. When the interfaces are compatible, a clean green confirmation is rendered in the validation report console as shown in **Figure 1**. When type or passing mismatches are introduced, the comparative type engine highlights these errors directly inside the Monaco editors with line-specific squigglies and details them in the console report as illustrated in **Figure 2**. Furthermore, developers can run the raw command-line compilation dump inside the integrated console to inspect raw AST validation outputs directly from the web workspace as depicted in **Figure 5**.
+2. **Test Cases Tab**: A comprehensive sidebar containing the **30+ built-in deliberate mismatches** to browse, run, and batch-execute edge cases with an interactive split-view editor showing side-by-side mismatch detail validation and accurate dynamic line number mapping, as cited in **Figure 4**.
+3. **AI Generator Tab**: Automatically generates fully compatible Fortran `BIND(C)` modules and subprograms from pasted C headers in a conversational chat window, as shown in **Figure 3**.
 
 ### **Running the Web App Locally**
 
@@ -114,8 +114,13 @@ A premium, full-stack LeetCode-style web interface is provided for live cross-la
 <img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/dbad739d-aef4-414a-94fc-05c5c1a23051" />
 *Figure 3: The AI Generator tab generating a Fortran subroutine for the respective C header file.*
 
-<img width="1920" height="960" alt="image" src="https://github.com/user-attachments/assets/YOUR_UPLOADED_IMAGE_URL" />
+
+<img width="1920" height="960" alt="image" src="https://github.com/user-attachments/assets/YOUR_TEST_CASES_DETAIL_IMAGE_URL" />
 *Figure 4: The Test Cases tab showing side-by-side interactive code validation with accurate dynamic line number mapping.*
+
+
+<img width="1920" height="960" alt="image" src="https://github.com/user-attachments/assets/YOUR_CLI_TERMINAL_IMAGE_URL" />
+*Figure 5: The CLI Terminal view within the IDE Validator tab displaying raw LLVM AST-dump verification outputs.*
 
 ---
 
