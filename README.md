@@ -115,11 +115,11 @@ A premium, full-stack LeetCode-style web interface is provided for live cross-la
 *Figure 3: The AI Generator tab generating a Fortran subroutine for the respective C header file.*
 
 
-<img width="1920" height="960" alt="image" src="https://github.com/user-attachments/assets/YOUR_TEST_CASES_DETAIL_IMAGE_URL" />
+<img width="1912" height="937" alt="image" src="https://github.com/user-attachments/assets/b58afb5a-7457-4ca5-990d-63fc2c848c29" />
 *Figure 4: The Test Cases tab showing side-by-side interactive code validation with accurate dynamic line number mapping.*
 
 
-<img width="1920" height="960" alt="image" src="https://github.com/user-attachments/assets/YOUR_CLI_TERMINAL_IMAGE_URL" />
+<img width="1916" height="949" alt="image" src="https://github.com/user-attachments/assets/db463b5a-9a91-46d5-ae8e-5bce83170484" />
 *Figure 5: The CLI Terminal view within the IDE Validator tab displaying raw LLVM AST-dump verification outputs.*
 
 ---
