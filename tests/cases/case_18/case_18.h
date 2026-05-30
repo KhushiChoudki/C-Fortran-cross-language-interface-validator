@@ -1,1 +1,1 @@
-void sub_18(double x);
+double sub_18(int x);

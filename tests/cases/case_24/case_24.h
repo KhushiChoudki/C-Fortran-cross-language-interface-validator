@@ -1,1 +1,1 @@
-void sub_24(double x);
+void sub_24(short val);

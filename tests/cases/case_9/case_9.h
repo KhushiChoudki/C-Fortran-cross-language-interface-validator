@@ -1,1 +1,1 @@
-void sub_9(double x);
+void sub_9(long x);

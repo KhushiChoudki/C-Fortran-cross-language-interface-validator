@@ -1,1 +1,1 @@
-void sub_25(double x);
+void sub_25(long long val);

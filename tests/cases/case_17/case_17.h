@@ -1,1 +1,1 @@
-void sub_17(double x);
+void sub_17(int arr[10]);

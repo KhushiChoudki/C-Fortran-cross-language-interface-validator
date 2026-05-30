@@ -1,1 +1,1 @@
-void sub_19(double x);
+void sub_19(int rows, int cols);

@@ -1,70 +1,107 @@
-<img width="1918" height="947" alt="image" src="https://github.com/user-attachments/assets/e2d51ec2-fcaf-4afb-ace8-11d68e704e8c" /># Fortran–C Cross-Language Interface Validator
+<img width="1918" height="947" alt="image" src="https://github.com/user-attachments/assets/e2d51ec2-fcaf-4afb-ace8-11d68e704e8c" />
 
-A robust CLI tool designed to detect type mismatches, ABI violations, and silent interoperability bugs between Fortran `BIND(C)` interfaces and their corresponding C headers.
+# Fortran–C Cross-Language Interface Validator
 
-## Overview
+A robust LLVM-powered validation engine and interactive web workspace designed to automatically detect type mismatches, ABI violations, and silent interoperability bugs between Fortran `BIND(C)` interfaces and their corresponding C headers.
 
-Mixed-language codebases (e.g., LAPACK, PETSc, WRF) often rely on manual synchronization between Fortran interfaces and C headers. This tool automates the validation process by using actual compiler frontends (**Clang** for C and **Flang** for Fortran) to extract and compare metadata.
+---
 
-### Key Features
+## 📋 Assignment Overview: Assignment 20
 
-- **Scalar Type Validation**: Ensures `c_int`, `c_double`, etc., match their C counterparts (`int`, `double`).
-- **Struct/Derived Type Layout**: Cross-validates field counts and types within C `structs` and Fortran `type, bind(c)`.
-- **Pass-by-Attribute Check**: Detects mismatches between C pointers/values and Fortran `VALUE` attributes.
-- **Argument Order & Count**: Precisely identifies errors in parameter lists.
-- **LLVM-Powered**: Uses `clang -ast-dump=json` and `flang-new -fdebug-dump-symbols` for high-fidelity parsing.
+### **Description**
+A tool that parses Fortran `BIND(C)` interfaces via **Flang** and corresponding C headers via **Clang**, then cross-validates type compatibility, parameter passing, and struct layout — catching silent interop bugs before runtime compilation.
 
-## Installation
+### **Background**
+Mixed Fortran–C codebases (e.g., HPC libraries like LAPACK, PETSc, WRF) often rely on manual synchronization between Fortran interfaces and C headers. This process is highly error-prone, and no existing mainstream tool validates both sides simultaneously using actual compiler frontends. 
 
-### Prerequisites
+### **Objective**
+Detect type mismatches, ABI violations, parameter count/order errors, and pointer/value passing mismatches across the Fortran–C boundary with precise, line-by-line source locations.
 
+### **Deliverables**
+1. **CLI Tool**: Accepts Fortran source and C header inputs, parsing both via LLVM frontends and outputting a comprehensive compatibility report.
+2. **Type Comparison Engine**: Robust comparative validation covering scalars, structures/derived types, arrays, pointers, and strings.
+3. **Test Suite**: A built-in validation suite containing **30+ deliberately mismatched interface pairs** to verify detector robustness.
+4. **Real-world Verification**: Validation demonstration on standard HPC libraries, specifically demonstrating interop matching on LAPACKE structures and signatures.
+
+---
+
+## 🔍 Supported Mismatch Categories (Error Types)
+
+This validator categorizes inter-language ABI and layout issues into **9 distinct error classes** exactly as represented in the interactive test suite:
+
+| Category | Description | Severity | Example Issue Caught |
+| :--- | :--- | :---: | :--- |
+| **Type Mismatch** | Discrepancies between scalar types (e.g., size differences, float vs real double, logical kind errors). | `ERROR` / `WARNING` | C `int` (4 bytes) vs Fortran `real(8)` (8 bytes). |
+| **Parameter Error** | Mismatches in argument count or swapped parameter order. | `ERROR` | C declares `(rows, cols)` but Fortran uses `(cols, rows)`. |
+| **Passing Convention** | Mismatches between C pointer/value semantics and Fortran `VALUE` attributes. | `ERROR` | C passes `int` by value but Fortran expects reference (no `VALUE` attribute). |
+| **Struct Layout** | Structural discrepancies: field count mismatches, reversed fields, alignment padding issues, or nested type compatibility issues. | `ERROR` | C `struct` has `{int x; double y;}` but Fortran swaps field order. |
+| **Pointer Mismatch** | Incompatible pointer indirection levels (e.g. passing double-pointers where a scalar value is expected). | `ERROR` | C passes `double**` vs Fortran expects `real(8), value`. |
+| **Array Mismatch** | Mismatches between arrays (which decay to pointers in C) and scalars or wrong dimensions. | `ERROR` | C passes `int arr[10]` vs Fortran expects a scalar `integer, value`. |
+| **String / Char** | Incompatible character passing (e.g., pointer to string vs single char value). | `ERROR` | C passes `char *` vs Fortran expects single `character, value`. |
+| **Return Type** | Discrepancies between C return type and Fortran subroutine vs function declaration. | `ERROR` | C function returns `double` but Fortran declares a `subroutine` (void return). |
+| **Name Binding** | Symbol resolution failures between C function name and Fortran `BIND(C, name="...")` binding name. | `ERROR` | C function is `sub_c` but Fortran BIND(C) name is `"wrong_name"`. |
+
+---
+
+## 🚀 Installation & Prerequisites
+
+### **1. Prerequisites**
 - **Python 3.8+**
-- **LLVM/Clang/Flang**: The tool requires the LLVM toolchain. You can install it on Windows via Winget:
-  ```powershell
-  winget install LLVM.LLVM
-  ```
+- **LLVM Toolchain** (requires `clang.exe` and `flang-new.exe`).
+  - **On Windows**: Install via Winget in PowerShell:
+    ```powershell
+    winget install LLVM.LLVM
+    ```
 
-### Setup
-
-Clone the repository:
+### **2. Setup & Installation**
 ```bash
 git clone https://github.com/KhushiChoudki/C-Fortran-cross-language-interface-validator.git
 cd C-Fortran-cross-language-interface-validator
 ```
 
-## Usage
+---
 
-Run the validator by providing the Fortran source and C header paths:
+## 💻 CLI Usage & Testing
 
+Run the CLI tool by passing a Fortran source file and a C header:
 ```powershell
 python fc_validator.py --fortran path/to/source.f90 --c path/to/header.h --clang "C:\Program Files\LLVM\bin\clang.exe" --flang "C:\Program Files\LLVM\bin\flang-new.exe"
 ```
 
-### Example: LAPACKE Validation
-
-```powershell
-python fc_validator.py --fortran external/lapacke/lapack_interfaces.f90 --c external/lapacke/lapacke_minimal.h
-```
-
-## Testing
-
-The tool includes a suite of **30+ deliberately mismatched interface pairs** to verify its detection capabilities.
-
-Run the full test suite:
+### **Running the Deliberate Mismatches Test Suite (30+ Cases)**
+Execute the suite of 32 edge cases to see the type comparison engine detect all errors:
 ```powershell
 python scripts/run_all_tests.py
 ```
 
-## Web Application (UI)
+---
 
-The project now includes a beautiful, full-stack web application that provides a LeetCode-style experience for validating and generating Fortran-C interfaces.
+## 🎨 Interactive Web Application
 
-### Features
-- **IDE Validator Tab**: Dual Monaco editors with live syntax checking, semantic error squigglies, and a unified LeetCode-style test result console.
-- **Test Cases Tab**: A comprehensive suite to browse, run, and batch-execute edge cases with an interactive sidebar.
-- **AI Generator Tab**: Automatically generate Fortran `BIND(C)` interfaces from C headers using intelligent parsing.
+A premium, full-stack LeetCode-style web interface is provided for live cross-language validation and generator pipelines.
 
-### UI Screenshots
+### **Features**
+1. **IDE Validator Tab**: Interactive side-by-side Monaco Editors for C and Fortran with instant compilation error reporting, line-specific squigglies, and a comprehensive test output console.
+2. **Test Cases Tab**: Sidebar containing the **30+ built-in deliberate mismatches** — allowing one-click loading, instant batch execution, and inline terminal outputs.
+3. **AI Generator Tab**: Automatically generates fully compatible Fortran `BIND(C)` modules and subprograms from pasted C headers.
+
+### **Running the Web App Locally**
+
+1. **Start the Flask Backend Server**:
+   ```bash
+   python server.py
+   ```
+2. **Start the Vite/React Frontend Server**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+3. Open your browser and navigate to **[http://localhost:5173/](http://localhost:5173/)** to access the workspace.
+
+---
+
+## 📸 Web Application Screenshots
 
 <img width="1911" height="899" alt="image" src="https://github.com/user-attachments/assets/7a24e301-b927-4858-af94-0cb048d345b0" />
 *Figure 1: The IDE Validator showing a clean "Accepted" console after successful validation.*
@@ -75,18 +112,19 @@ The project now includes a beautiful, full-stack web application that provides a
 
 
 <img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/dbad739d-aef4-414a-94fc-05c5c1a23051" />
-*Figure 3: The AI Generator tab generating fortran subroutine for respective c header file*
+*Figure 3: The AI Generator tab generating a Fortran subroutine for the respective C header file.*
 
-## Project Structure
+---
 
-- `server.py`: Flask backend serving the API.
-- `frontend/`: React + Vite frontend application.
-- `fc_validator.py`: Main CLI entry point.
-- `parsers/`: LLVM-based parsers for C and Fortran.
-- `engine/`: Cross-language type comparison logic.
-- `tests/`: Automated test suite with 30+ edge cases.
-- `external/`: Real-world validation demo (LAPACKE).
+## 📂 Project Structure
 
-## License
+- `server.py`: Flask backend serving validation and generation APIs.
+- `parsers/`: LLVM Clang-JSON and Flang-Symbols parsing libraries.
+- `engine/`: Core type comparison comparator and semantic checker.
+- `frontend/`: Vite-powered React front-end application.
+- `tests/`: Directory containing the 32 deliberately mismatched test cases.
+- `scripts/`: Test suites and setup scripts.
+- `external/`: Real-world LAPACKE validation files.
 
+## 📄 License
 MIT

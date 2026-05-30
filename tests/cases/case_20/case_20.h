@@ -1,1 +1,1 @@
-void sub_20(double x);
+void sub_20(double *data);

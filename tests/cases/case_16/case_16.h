@@ -1,1 +1,1 @@
-void sub_16(double x);
+void sub_16(double **ptr);

@@ -55,6 +55,7 @@ export default function AIGeneratorTab() {
       const response = await axios.post('http://127.0.0.1:5000/api/generate', { prompt: userMsg });
       setMessages(prev => [...prev, { role: 'ai', content: response.data.generated }]);
     } catch (error) {
+      console.error(error);
       setMessages(prev => [...prev, { role: 'ai', content: 'Sorry, I encountered an error communicating with the server.' }]);
     } finally {
       setIsLoading(false);

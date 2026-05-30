@@ -1,1 +1,1 @@
-void sub_26(double x);
+void sub_26(float *val);

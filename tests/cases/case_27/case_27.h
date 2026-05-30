@@ -1,1 +1,1 @@
-void sub_27(double x);
+void sub_27(double val);

@@ -1,10 +1,9 @@
 import { useState, useRef } from 'react';
 import Editor from '@monaco-editor/react';
-import { Play, CheckCircle } from 'lucide-react';
+import { Play, Terminal, Copy } from 'lucide-react';
 import axios from 'axios';
 
-const DEFAULT_C = `void do_math(int rows, int cols, double *matrix);
-`;
+const DEFAULT_C = `void do_math(int rows, int cols, double *matrix);\n`;
 
 const DEFAULT_F = `module test_mod
   use iso_c_binding
@@ -25,7 +24,13 @@ export default function IDEValidatorTab() {
   const [fCode, setFCode] = useState(DEFAULT_F);
   const [isValidating, setIsValidating] = useState(false);
   const [validationErrors, setValidationErrors] = useState(null);
-  
+
+  const [cliOutput, setCliOutput] = useState(null);
+  const [cliCommand, setCliCommand] = useState('python fc_validator.py --fortran input.f90 --c input.h');
+  const [isCliRunning, setIsCliRunning] = useState(false);
+  const [consoleTab, setConsoleTab] = useState('validation');
+  const [copied, setCopied] = useState(false);
+
   const cEditorRef = useRef(null);
   const fEditorRef = useRef(null);
   const monacoRef = useRef(null);
@@ -38,8 +43,8 @@ export default function IDEValidatorTab() {
 
   const handleValidate = async () => {
     setIsValidating(true);
-    
-    // Clear previous markers
+    setConsoleTab('validation');
+
     if (monacoRef.current) {
       if (cEditorRef.current) monacoRef.current.editor.setModelMarkers(cEditorRef.current.getModel(), 'validator', []);
       if (fEditorRef.current) monacoRef.current.editor.setModelMarkers(fEditorRef.current.getModel(), 'validator', []);
@@ -50,22 +55,45 @@ export default function IDEValidatorTab() {
         c_code: cCode,
         fortran_code: fCode
       });
-      
-      const results = response.data.results;
-      if (results && results.length > 0) {
-        applyMarkers(results);
-        setValidationErrors(results);
-      } else {
-        setValidationErrors([]);
-      }
+      const results = response.data.results || [];
+      if (results.length > 0) applyMarkers(results);
+      setValidationErrors(results);
     } catch (error) {
-      alert("Error: " + (error.response?.data?.error || error.message));
+      const errMsg = error.response?.data?.error
+        ? `Backend error: ${error.response.data.error}`
+        : `Cannot reach backend (is server.py running?): ${error.message}`;
+      setValidationErrors([{ level: 'ERROR', msg: errMsg, loc: 'Network' }]);
     } finally {
       setIsValidating(false);
     }
   };
 
+  const handleRunCli = async () => {
+    setIsCliRunning(true);
+    setConsoleTab('cli');
+    try {
+      const response = await axios.post('http://127.0.0.1:5000/api/cli-run', {
+        c_code: cCode,
+        fortran_code: fCode,
+        case_name: 'custom_run'
+      });
+      setCliCommand(response.data.command);
+      setCliOutput(response.data.output);
+    } catch (error) {
+      setCliOutput('Error running CLI: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setIsCliRunning(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(cliCommand);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const applyMarkers = (results) => {
+    if (!monacoRef.current) return;
     const cMarkers = [];
     const fMarkers = [];
     const monaco = monacoRef.current;
@@ -73,52 +101,42 @@ export default function IDEValidatorTab() {
     results.forEach(issue => {
       const severity = issue.level === 'ERROR' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning;
       const msg = issue.msg;
-      const loc = issue.loc || "";
+      const loc = issue.loc || '';
 
-      // Try to parse C line number: "C: something:line"
-      const cMatch = loc.match(/C: [^:]+:(\d+)/);
+      const cMatch = loc.match(/C:.*:(\d+)/);
       if (cMatch) {
         let line = parseInt(cMatch[1]);
-        if (line === 0) line = 1; // Fallback to line 1 if unknown
-        cMarkers.push({
-          startLineNumber: line,
-          startColumn: 1,
-          endLineNumber: line,
-          endColumn: 100, // Highlight whole line
-          message: msg,
-          severity: severity
-        });
+        if (line === 0) line = 1;
+        cMarkers.push({ startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 100, message: msg, severity });
       }
 
-      // Try to parse Fortran line number
       const fMatch = loc.match(/Fortran line (\d+|\?)/);
       if (fMatch) {
         let line = parseInt(fMatch[1]);
         if (isNaN(line) || line === 0) line = 1;
-        fMarkers.push({
-          startLineNumber: line,
-          startColumn: 1,
-          endLineNumber: line,
-          endColumn: 100,
-          message: msg,
-          severity: severity
-        });
+        fMarkers.push({ startLineNumber: line, startColumn: 1, endLineNumber: line, endColumn: 100, message: msg, severity });
       }
     });
 
-    if (cEditorRef.current) {
-      monaco.editor.setModelMarkers(cEditorRef.current.getModel(), 'validator', cMarkers);
-    }
-    if (fEditorRef.current) {
-      monaco.editor.setModelMarkers(fEditorRef.current.getModel(), 'validator', fMarkers);
-    }
+    if (cEditorRef.current) monaco.editor.setModelMarkers(cEditorRef.current.getModel(), 'validator', cMarkers);
+    if (fEditorRef.current) monaco.editor.setModelMarkers(fEditorRef.current.getModel(), 'validator', fMarkers);
   };
 
   return (
     <div className="ide-tab">
 
+      {/* Toolbar */}
       <div className="ide-toolbar">
-        <button 
+        <button
+          className={`btn secondary ${isCliRunning ? 'loading' : ''}`}
+          onClick={handleRunCli}
+          disabled={isCliRunning}
+          style={{ marginRight: '0.5rem' }}
+        >
+          {isCliRunning ? <span className="spinner">⟳</span> : <Terminal size={16} />}
+          Run CLI Command
+        </button>
+        <button
           className={`btn ${isValidating ? 'loading' : ''}`}
           onClick={handleValidate}
           disabled={isValidating}
@@ -127,6 +145,8 @@ export default function IDEValidatorTab() {
           Validate Code
         </button>
       </div>
+
+      {/* Editors */}
       <div className="editor-container">
         <div className="editor-pane">
           <div className="editor-header">C Header (*.h)</div>
@@ -153,31 +173,71 @@ export default function IDEValidatorTab() {
           />
         </div>
       </div>
-      
-      {validationErrors !== null && (
-        <div className="leetcode-console">
-          <div className="console-header">
-            <span>Test Result</span>
-            <button className="close-btn" onClick={() => setValidationErrors(null)}>✕</button>
-          </div>
-          <div className="console-content">
-            {validationErrors.length === 0 ? (
-              <h2 className="status-text accepted">Accepted</h2>
-            ) : (
-              <>
-                <h2 className="status-text rejected">Wrong Answer</h2>
-                <ul>
-                  {validationErrors.map((err, idx) => (
-                    <li key={idx}>
-                      <strong>{err.level}:</strong> {err.msg} <span className="err-loc">({err.loc})</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
-          </div>
+
+      {/* Console Panel */}
+      <div className="leetcode-console">
+        <div className="console-header-tabs" style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', background: 'rgba(0,0,0,0.1)' }}>
+          <button
+            className={`console-tab-btn ${consoleTab === 'validation' ? 'active' : ''}`}
+            onClick={() => setConsoleTab('validation')}
+          >
+            Validation Report
+          </button>
+          <button
+            className={`console-tab-btn ${consoleTab === 'cli' ? 'active' : ''}`}
+            onClick={() => setConsoleTab('cli')}
+          >
+            CLI Terminal
+          </button>
+          <button
+            className="close-btn"
+            style={{ marginLeft: 'auto', marginRight: '1rem', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}
+            onClick={() => { setValidationErrors(null); setCliOutput(null); setConsoleTab('validation'); }}
+          >
+            ✕
+          </button>
         </div>
-      )}
+
+        <div className="console-content" style={{ overflowY: 'auto', flex: 1, padding: '1rem' }}>
+          {consoleTab === 'validation' ? (
+            validationErrors !== null ? (
+              validationErrors.length === 0 ? (
+                <h2 className="status-text accepted">✓ All checks passed — interfaces are compatible.</h2>
+              ) : (
+                <>
+                  <h2 className="status-text rejected">✗ {validationErrors.length} issue{validationErrors.length > 1 ? 's' : ''} found</h2>
+                  <ul>
+                    {validationErrors.map((err, idx) => (
+                      <li key={idx}>
+                        <strong>{err.level}:</strong> {err.msg} <span className="err-loc">({err.loc})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )
+            ) : (
+              <h3 className="status-text neutral">Select a test case or paste code, then click "Validate Code".</h3>
+            )
+          ) : (
+            <div className="cli-terminal-container">
+              <div className="cli-command-line">
+                <span className="prompt">$</span> {cliCommand}
+                <button className="copy-cmd-btn" onClick={copyToClipboard}>
+                  {copied ? 'Copied!' : <><Copy size={12} /> Copy</>}
+                </button>
+              </div>
+              <div className="cli-terminal-output">
+                {isCliRunning ? (
+                  <div className="terminal-loading"><span className="spinner">⟳</span> Executing python fc_validator.py...</div>
+                ) : (
+                  <pre>{cliOutput || "Click 'Run CLI Command' to see direct compiler AST-dump CLI validation report output."}</pre>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
     </div>
   );
 }

@@ -1,1 +1,1 @@
-void sub_28(double x);
+void sub_28(float matrix[3][5]);

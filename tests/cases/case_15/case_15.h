@@ -1,1 +1,1 @@
-void sub_15(double x);
+void sub_15(void *ptr);

@@ -21,7 +21,7 @@ class FlangParser:
         ])
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            return self._parse_symbols(result.stdout)
+            return self._parse_symbols(result.stdout, fortran_file)
         except subprocess.CalledProcessError as e:
             err_text = e.stderr
             match = re.search(r':(\d+):\d+:\s+error:\s+(.*)', err_text)
@@ -34,7 +34,7 @@ class FlangParser:
             print(f"Error parsing flang output: {e}")
             return None
 
-    def _parse_symbols(self, dump_text):
+    def _parse_symbols(self, dump_text, fortran_file=None):
         interfaces = {}
         structs = {}
         
@@ -108,6 +108,11 @@ class FlangParser:
                         "type": self._normalize_fortran_type(arg_type),
                         "pass_by": "value" if "VALUE" in line else "reference"
                     }
+                else:
+                    # Check if this line declares the return type of the function (has same name as subroutine/function)
+                    ret_match = re.search(r'^\s+([a-zA-Z0-9_]+).*type: (.*)', line, re.IGNORECASE)
+                    if ret_match and ret_match.group(1).lower() == current_sub["name"].lower() and not "dummy" in line:
+                        current_sub["return_type"] = self._normalize_fortran_type(ret_match.group(2))
 
             # Derived Type scope
             type_scope_match = re.search(r'DerivedType scope:\s*([a-zA-Z0-9_]+)', line, re.IGNORECASE)
@@ -119,16 +124,21 @@ class FlangParser:
                 continue
             
             if current_type:
-                field_match = re.search(r'^\s+([a-zA-Z0-9_]+).*type: (.*)', line, re.IGNORECASE)
+                field_match = re.search(r'^\s+([a-zA-Z0-9_]+)(?:\s+size=\d+)?\s+offset=(\d+):.*type: (.*)', line, re.IGNORECASE)
                 if field_match and line.startswith("      ") and not "dummy" in line:
                     current_type["fields"].append({
                         "name": field_match.group(1),
-                        "type": self._normalize_fortran_type(field_match.group(2))
+                        "offset": int(field_match.group(2)),
+                        "type": self._normalize_fortran_type(field_match.group(3))
                     })
                 elif line.strip() and not line.startswith(" "):
                     current_type = None
             
             i += 1
+
+        # Sort struct fields by offset to preserve layout order
+        for s_name, s_info in structs.items():
+            s_info["fields"].sort(key=lambda f: f.get("offset", 0))
 
         # Finalize interfaces by mapping meta to order
         final_interfaces = {}
@@ -144,18 +154,89 @@ class FlangParser:
             final_interfaces[bind_name] = {
                 "name": info["name"],
                 "params": params,
+                "return_type": info.get("return_type", "void"),
                 "loc": info["loc"]
             }
+
+        # Try to scan the original Fortran file to locate correct declaration lines
+        if fortran_file:
+            try:
+                with open(fortran_file, 'r', encoding='utf-8', errors='ignore') as f:
+                    source_lines = f.read().splitlines()
+                
+                # Update subroutines/functions lines
+                for bind_name, info in final_interfaces.items():
+                    name = info["name"].lower()
+                    for idx, src_line in enumerate(source_lines):
+                        clean_line = src_line.strip().lower()
+                        # Search for BIND(C) subroutine or function
+                        if "subroutine" in clean_line and name in clean_line:
+                            info["loc"]["line"] = idx + 1
+                            break
+                        if "function" in clean_line and name in clean_line:
+                            info["loc"]["line"] = idx + 1
+                            break
+
+                # Update structs (derived types) lines
+                for s_name, s_info in structs.items():
+                    name = s_info["name"].lower()
+                    for idx, src_line in enumerate(source_lines):
+                        clean_line = src_line.strip().lower()
+                        # Search for TYPE, BIND(C)
+                        if "type" in clean_line and name in clean_line:
+                            s_info["loc"]["line"] = idx + 1
+                            break
+            except Exception as ex:
+                print(f"Error mapping original source lines: {ex}")
 
         return {"interfaces": final_interfaces, "structs": structs}
 
     def _normalize_fortran_type(self, attrs):
-        # Extract type info like Integer(4), Real(8), etc.
-        type_match = re.search(r'(Integer|Real|Logical|Character|Type|Complex)(?:\((\d+)\))?', attrs, re.IGNORECASE)
+        """
+        Normalize a Fortran type attribute string from flang's symbol dump.
+        Handles both numeric kinds (Integer(4)) and ISO_C_BINDING named kinds (Integer(c_int)).
+        Examples:
+          'Integer(4)'           → 'integer(4)'
+          'Real(8)'              → 'real(8)'
+          'Integer(c_int)'       → 'integer(c_int)'
+          'Logical(c_bool)'      → 'logical(c_bool)'
+          'Character(1,KIND=1)'  → 'character(1)'
+          'Type(my_struct_10)'   → 'type(my_struct_10)'
+        """
+        # Match base type + optional kind
+        type_match = re.search(
+            r'(Integer|Real|Logical|Character|Type|Complex)\(([^)]+)\)',
+            attrs, re.IGNORECASE
+        )
         if type_match:
             base = type_match.group(1).lower()
-            kind = type_match.group(2)
-            if kind:
-                return f"{base}({kind})"
-            return base
+            raw_kind = type_match.group(2).strip()
+
+            # CHARACTER may have shape like "1,KIND=1" — take the KIND part or first token
+            if base == 'character':
+                kind_part = raw_kind
+                for part in raw_kind.split(','):
+                    part = part.strip()
+                    if part.upper().startswith('KIND='):
+                        kind_part = part.split('=')[1].strip()
+                        break
+                    elif part.isdigit():
+                        kind_part = part
+                        break
+                return f"character({kind_part})"
+
+            # Numeric kind
+            if raw_kind.isdigit():
+                return f"{base}({raw_kind})"
+
+            # Named ISO_C_BINDING kind (e.g. c_int, c_double) — preserve as-is in lowercase
+            iso_kind = raw_kind.lower().split(',')[0].strip()
+            return f"{base}({iso_kind})"
+
+        # No parenthesised kind — bare type
+        bare_match = re.search(r'(Integer|Real|Logical|Character|Complex)', attrs, re.IGNORECASE)
+        if bare_match:
+            return bare_match.group(1).lower()
+
         return "unknown"
+

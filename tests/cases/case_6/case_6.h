@@ -1,1 +1,1 @@
-void sub_6(double x);
+void sub_6(_Bool x);

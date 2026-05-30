@@ -1,1 +1,1 @@
-void sub_7(double x);
+void sub_7(float x);

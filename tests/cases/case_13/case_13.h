@@ -1,1 +1,1 @@
-void sub_13(double x);
+void sub_13(const int *x);

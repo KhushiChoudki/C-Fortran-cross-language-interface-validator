@@ -1,1 +1,1 @@
-void sub_30(double x);
+void sub_30(unsigned int x);

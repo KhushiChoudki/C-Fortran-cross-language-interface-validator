@@ -1,1 +1,1 @@
-void sub_23(double x);
+void sub_23(char c);

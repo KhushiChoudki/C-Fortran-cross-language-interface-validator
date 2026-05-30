@@ -1,1 +1,1 @@
-void sub_8(double x);
+void sub_8(short x);

@@ -1,1 +1,1 @@
-void sub_29(double x);
+void sub_29(size_t n);

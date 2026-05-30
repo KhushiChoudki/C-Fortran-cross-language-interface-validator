@@ -19,7 +19,7 @@ class SemanticChecker:
                 warnings.append({
                     "level": "WARNING",
                     "msg": f"Semantic Intent: Parameter {i+1} is named '{f_name}' in Fortran but maps to '{c_name}' in C. Did you swap arguments?",
-                    "loc": f"Fortran line {f_param.get('loc', {}).get('line', '?')}" # will map to editor
+                    "loc": f"Fortran line {f_param.get('loc', {}).get('line') or f_info.get('loc', {}).get('line', '?')}" # will map to editor
                 })
             
             # Array Size Prediction

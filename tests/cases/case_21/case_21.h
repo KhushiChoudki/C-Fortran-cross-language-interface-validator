@@ -1,1 +1,1 @@
-void sub_21(double x);
+void sub_21(float _Complex z);

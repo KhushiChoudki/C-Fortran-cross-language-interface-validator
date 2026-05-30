@@ -1,1 +1,1 @@
-void sub_14(double x);
+void sub_14(char *s);

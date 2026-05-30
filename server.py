@@ -184,5 +184,56 @@ def run_all_testcases():
             
     return jsonify({"results": results})
 
+@app.route('/api/cli-run', methods=['POST'])
+def cli_run():
+    import sys
+    import subprocess
+    data = request.json
+    c_code = data.get('c_code', '')
+    fortran_code = data.get('fortran_code', '')
+    case_name = data.get('case_name', 'custom_run')
+    
+    with tempfile.NamedTemporaryFile(suffix='.h', delete=False, mode='w') as f_c:
+        f_c.write(c_code)
+        c_path = f_c.name
+        
+    with tempfile.NamedTemporaryFile(suffix='.f90', delete=False, mode='w') as f_f:
+        f_f.write(fortran_code)
+        f_path = f_f.name
+
+    try:
+        cmd = [
+            sys.executable,
+            "fc_validator.py",
+            "--fortran", f_path,
+            "--c", c_path,
+            "--clang", CLANG_PATH,
+            "--flang", FLANG_PATH
+        ]
+        
+        display_c_path = f"tests/cases/{case_name}/{case_name}.h" if case_name != "custom_run" else "input.h"
+        display_f_path = f"tests/cases/{case_name}/{case_name}.f90" if case_name != "custom_run" else "input.f90"
+        
+        display_cmd = f"python fc_validator.py --fortran {display_f_path} --c {display_c_path} --clang \"{CLANG_PATH}\" --flang \"{FLANG_PATH}\""
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        
+        output_text = result.stdout + result.stderr
+        output_text = output_text.replace(c_path, display_c_path).replace(f_path, display_f_path)
+        
+        return jsonify({
+            "command": display_cmd,
+            "output": output_text,
+            "exit_code": result.returncode
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        try:
+            os.remove(c_path)
+            os.remove(f_path)
+        except:
+            pass
+
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
