@@ -114,6 +114,9 @@ A premium, full-stack LeetCode-style web interface is provided for live cross-la
 <img width="1919" height="925" alt="image" src="https://github.com/user-attachments/assets/dbad739d-aef4-414a-94fc-05c5c1a23051" />
 *Figure 3: The AI Generator tab generating a Fortran subroutine for the respective C header file.*
 
+<img width="1920" height="960" alt="image" src="https://github.com/user-attachments/assets/YOUR_UPLOADED_IMAGE_URL" />
+*Figure 4: The Test Cases tab showing side-by-side interactive code validation with accurate dynamic line number mapping.*
+
 ---
 
 ## 📂 Project Structure
